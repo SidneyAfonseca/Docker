@@ -1,0 +1,64 @@
+version: '3'
+
+services:
+  livrosapi:
+    container_name: livros_backend
+    build: ./webacademy-livros-backend
+    restart: always
+    ports:
+      - 4444:4444
+    env_file:
+      - ./webacademy-livros-backend/.env
+    volumes:
+      - vol_logs_api:/app/log
+    depends_on:
+      - livrosdb
+    networks:
+      - livros_network
+
+  livrosdb:
+    container_name: livros_db
+    restart: always
+    image: mysql:latest
+    ports:
+      - ${PORT_MYSQL}:3306
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql_db:/var/lib/mysql
+      - ./webacademy-livros-config/script.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - livros_network
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    ports:
+      - ${PORT_PMA}:80
+    environment:
+      - PMA_ARBITRARY=1
+    depends_on:
+      - livrosdb
+    networks:
+      - livros_network
+
+  livroshttp:
+    container_name: livroshttp
+    restart: always
+    build: ./webacademy-livros-frontend
+    ports:
+      - 8000:80
+    env_file:
+      - ./webacademy-livros-frontend/.env
+    depends_on:
+      - livrosapi
+    networks:
+      - livros_network
+
+networks:
+  livros_network:
+    driver: bridge
+
+volumes:
+  vol_logs_api:
+  mysql_db:
